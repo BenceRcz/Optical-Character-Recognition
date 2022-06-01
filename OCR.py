@@ -1,6 +1,7 @@
 # Author: Bence Racz
 
 
+# Main function of the app
 def main():
     return
 
