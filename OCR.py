@@ -5,10 +5,9 @@ from numpy import dot
 from numpy.linalg import norm
 import heapq
 
-
 matrix = []
 k = 5
-used_metric = 1
+used_metric = 2
 
 
 # Reads the matrices from the given file
@@ -30,19 +29,11 @@ def read_file(path):
     return
 
 
-# This function returns the result of the Kronecker-delta function
-def kronecker_delta(x, y):
-    if x == y:
-        return 1
-    else:
-        return 0
-
-
 # The function calculates the euclidean metric
 def euclidean_metric(x, z):
     metric = 0
     for i in range(64):
-        metric += sqrt((x[i] - z[i])**2)
+        metric += sqrt((x[i] - z[i]) ** 2)
     return metric
 
 
@@ -88,14 +79,63 @@ def k_nearest_neighbour(test_vector):
     return get_most_frequent(similarities)
 
 
+# The function creates the "prototypes" for the centroid algorithm
+def create_centroid_data():
+    c = []
+    frequency = numpy.zeros(10)
+    sum_vector = []
+
+    for i in range(10):
+        sum_vector.append(numpy.zeros(64))
+        c.append(numpy.zeros(64))
+
+    for vector in matrix:
+        frequency[vector[64]] += 1
+
+        # The last element of the vector is the number the vector represents
+        sum_vector[vector[64]] += vector[:64]
+
+    for i in range(10):
+        c[i] = sum_vector[i] / frequency[i]
+
+    return c
+
+
+# The function implements the centroid algorithm
+def centroid(test_vector, c):
+    minimal = 9999
+    maximal = 0
+    got_number = 0
+    for i in range(10):
+        if used_metric == 1:
+            current_number = euclidean_metric(test_vector[:64], c[i])
+            if minimal > current_number:
+                minimal = current_number
+                got_number = i
+        else:
+            current_number = cos_similarity(test_vector[:64], c[i])
+            if maximal < current_number:
+                maximal = current_number
+                got_number = i
+
+    return got_number
+
+
 # The function trains the program
-def test_train():
+def test_train(version):
+    c = []
+    if version == 'centroid':
+        c = create_centroid_data()
     got_number = numpy.zeros(10)
     got_error = numpy.zeros(10)
 
     for number in matrix:
-        current_number = k_nearest_neighbour(number)
-        actual_number = number[len(number) - 1]
+        if version == 'knn':
+            current_number = k_nearest_neighbour(number)
+        else:
+            current_number = centroid(number, c)
+
+        actual_number = number[64]
 
         if current_number == actual_number:
             got_number[actual_number] += 1
@@ -107,15 +147,19 @@ def test_train():
         print('--    The program got it right: ', got_number[i])
         print('--    The program missed it: ', got_error[i])
         print('--    The error percentage: ', (got_error[i] / (got_number[i] + got_error[i])) * 100)
-        print('--    Overall error percentage: ', (sum(got_error) / (sum(got_error) + sum(got_number))) * 100)
+
+    print('--------------Overall error percentage: ', (sum(got_error) / (sum(got_error) + sum(got_number))) * 100,
+          '--------------')
 
     return
 
 
 # Main function of the app
 def main():
-    read_file('./optdigits.tra')
-    test_train()
+    # read_file('./optdigits.tra')
+    read_file('./optdigits.tes')
+    test_train('knn')
+    # test_train('centroid')
     return
 
 
