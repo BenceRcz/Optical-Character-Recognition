@@ -7,7 +7,9 @@ import heapq
 
 matrix = []
 k = 5
-used_metric = 2
+used_metric = 1
+used_algorithm = 'gradiens'
+used_file = 'test'
 
 
 # Reads the matrices from the given file
@@ -72,8 +74,6 @@ def k_nearest_neighbour(test_vector):
         else:
             calculated = cos_similarity(test_vector, number)
 
-        # I'm using a heap because we are going to need the k smallest calculated values and this is
-        # the optimal solution (that I can think of)
         heapq.heappush(similarities, (calculated, number[len(number) - 1]))
 
     return get_most_frequent(similarities)
@@ -103,7 +103,7 @@ def create_centroid_data():
 
 # The function implements the centroid algorithm
 def centroid(test_vector, c):
-    minimal = 9999
+    minimal = 99999
     maximal = 0
     got_number = 0
     for i in range(10):
@@ -119,6 +119,59 @@ def centroid(test_vector, c):
                 got_number = i
 
     return got_number
+
+
+# This function creates the data for the gradiens descent algorithm
+def create_gradiens_data(a, b):
+    data = []
+    for vector in matrix:
+        if vector[64] == a:
+            vector[64] = 1
+            data.append(vector)
+        if vector[64] == b:
+            vector[64] = -1
+            data.append(vector)
+
+    return data
+
+
+# The function implements the gradiens descent algorithm
+def gradiens(vectors, gamma, iterations):
+    w = numpy.zeros(64)
+    x = []
+    y = []
+    for vector in vectors:
+        x.append(vector[:64])
+        y.append(vector[64])
+
+    for i in range(iterations):
+        w = w - 2 * gamma / len(vectors) * numpy.matmul( numpy.transpose(x),  numpy.matmul(x, w) - y)
+    return w
+
+
+# The function evaluates the gradiens descent algorithms return value
+def got_number_gradiens(vector, w):
+    return numpy.sign(numpy.matmul(vector, w))
+
+
+# This function tests and prints a statistic about the gradiens descent algorithm
+def test_gradiens_descent():
+    data = create_gradiens_data(4, 7)
+    w = gradiens(data, 0.0000035, 2000)
+
+    got_number = 0
+    got_error = 0
+
+    for line in data:
+        if got_number_gradiens(line[:64], w) == line[64]:
+            got_number += 1
+        else:
+            got_error += 1
+
+    print('-----------Accuracy percentage using the gradiens descent: ',
+          100 - ((got_error / (got_error + got_number)) * 100), '-----------', sep='')
+
+    return
 
 
 # The function trains the program
@@ -148,7 +201,7 @@ def test_train(version):
         print('--    The program missed it: ', got_error[i])
         print('--    The error percentage: ', (got_error[i] / (got_number[i] + got_error[i])) * 100)
 
-    print('--------------Overall error percentage: ', (sum(got_error) / (sum(got_error) + sum(got_number))) * 100,
+    print('--------------Overall accuracy percentage: ', 100 - ((sum(got_error) / (sum(got_error) + sum(got_number))) * 100),
           '--------------')
 
     return
@@ -156,10 +209,17 @@ def test_train(version):
 
 # Main function of the app
 def main():
-    # read_file('./optdigits.tra')
-    read_file('./optdigits.tes')
-    test_train('knn')
-    # test_train('centroid')
+    if used_file == 'train':
+        read_file('./optdigits.tra')
+    if used_file == 'test':
+        read_file('./optdigits.tes')
+
+    if used_algorithm == 'knn':
+        test_train('knn')
+    if used_algorithm == 'centroid':
+        test_train('centroid')
+    if used_algorithm == 'gradiens':
+        test_gradiens_descent()
     return
 
 
